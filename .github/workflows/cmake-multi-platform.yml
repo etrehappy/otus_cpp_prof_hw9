@@ -32,13 +32,6 @@ jobs:
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
-
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
-      #
-      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
         os: [ubuntu-latest,  macos-latest, windows-latest]
         build_type: [Release]
@@ -73,23 +66,74 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}/source
 
-    - name: Build
-      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+ 
+    - name: Build and Install
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --target install        
+
+
+      ###########################   Upload Release   #########################################################
+    - name: Prepare directories and copy files (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        $buildOutputDir = "${{ steps.strings.outputs.build-output-dir }}"
+        $releaseDir = Join-Path -Path $buildOutputDir -ChildPath 'release_out'
+        $clientDir = Join-Path -Path $releaseDir -ChildPath 'client'
+        $libraryDir = Join-Path -Path $releaseDir -ChildPath 'library'
         
-    - name: Upload Release Asset Ubuntu
-      if: ${{ success() && matrix.os == 'ubuntu-latest' }}    
-      id: upload-release-asset-ubuntu
+        # cоздание директорий
+        New-Item -ItemType Directory -Force -Path $clientDir
+        New-Item -ItemType Directory -Force -Path $libraryDir
+        
+        # Копирование файлов и директорий
+        Copy-Item -Recurse -Force -Path (Join-Path -Path $buildOutputDir -ChildPath 'Release\*') -Destination $clientDir
+
+        Copy-Item -Recurse -Force -Path (Join-Path -Path $buildOutputDir -ChildPath 'async\include') -Destination $libraryDir
+        Copy-Item -Recurse -Force -Path (Join-Path -Path $buildOutputDir -ChildPath 'async\lib') -Destination $libraryDir
+        Copy-Item -Recurse -Force -Path (Join-Path -Path $buildOutputDir -ChildPath 'async\bin') -Destination $libraryDir
+
+    - name: Archive files (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        $buildOutputDir = "${{ steps.strings.outputs.build-output-dir }}"
+        $releaseDir = Join-Path -Path $buildOutputDir -ChildPath 'release_out'
+        $archivePath = Join-Path -Path $buildOutputDir -ChildPath 'async.zip'
+        
+        Compress-Archive -Path $releaseDir\client, $releaseDir\library -DestinationPath $archivePath -Force
+
+       
+    - name: Prepare directories for archiving (Ubuntu & macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release_out/client
+        mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release_out/library
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async_cli ${{ steps.strings.outputs.build-output-dir }}/release_out/client/
+        find "${{ steps.strings.outputs.build-output-dir }}" -name 'lib*' -exec cp {} "${{ steps.strings.outputs.build-output-dir }}/release_out/client/" \;
+
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/include ${{ steps.strings.outputs.build-output-dir }}/release_out/library/
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/lib ${{ steps.strings.outputs.build-output-dir }}/release_out/library/
+        
+    - name: Archive client files (Ubuntu & macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        cd ${{ steps.strings.outputs.build-output-dir }}/release_out
+        tar -czf async.tar.gz client library
+
+
+    - name: Upload Release Asset (Ubuntu & macOS)
+      if: ${{ success() && matrix.os != 'windows-latest' }}    
+      id: upload-release-asset-client
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.build-output-dir }}/bulk
-        asset_name: bulk-${{ matrix.os }}-0.0.${{ github.run_number }}
-        asset_content_type: application/vnd.debian.binary-package
+        asset_path: ${{ steps.strings.outputs.build-output-dir }}/release_out/async.tar.gz
+        asset_name: async-${{ matrix.os }}-0.0.${{ github.run_number }}.tar.gz
+        asset_content_type: application/gzip
 
-    - name: Upload Release Asset Windows
+    - name: Upload Release Asset (Windows)
       if: ${{ success() && matrix.os == 'windows-latest' }}
       id: upload-release-asset-windows
       uses: actions/upload-release-asset@v1
@@ -97,18 +141,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.build-output-dir }}/Release/bulk.exe
-        asset_name: bulk-${{ matrix.os }}-0.0.${{ github.run_number }}.exe
-        asset_content_type: application/x-msdownload
-
-    - name: Upload Release Asset MacOS
-      if: ${{ success() && matrix.os == 'macos-latest' }}     
-      id: upload-release-asset-macos
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.build-output-dir }}/bulk
-        asset_name: bulk-${{ matrix.os }}-0.0.${{ github.run_number }}
-        asset_content_type: application/octet-stream
+        asset_path: ${{ steps.strings.outputs.build-output-dir }}\async.zip
+        asset_name: async-${{ matrix.os }}-0.0.${{ github.run_number }}.zip
+        asset_content_type: application/zip
