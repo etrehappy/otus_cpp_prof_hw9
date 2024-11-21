@@ -81,7 +81,7 @@ jobs:
         $clientDir = Join-Path -Path $releaseDir -ChildPath 'client'
         $libraryDir = Join-Path -Path $releaseDir -ChildPath 'library'
         
-        # Создание директорий
+        # cоздание директорий
         New-Item -ItemType Directory -Force -Path $clientDir
         New-Item -ItemType Directory -Force -Path $libraryDir
         
@@ -108,8 +108,8 @@ jobs:
       run: |
         mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release/client
         mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release/library
-        cp -r ${{ steps.strings.outputs.build-output-dir }}/client/async_cli ${{ steps.strings.outputs.build-output-dir }}/release/client/
-        find "${{ steps.strings.outputs.build-output-dir }}/client/files" -name 'lib*' -exec cp {} "${{ steps.strings.outputs.build-output-dir }}/release/client/"
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async_cli ${{ steps.strings.outputs.build-output-dir }}/release/client/
+        find "${{ steps.strings.outputs.build-output-dir }}" -name 'lib*' -exec cp {} "${{ steps.strings.outputs.build-output-dir }}/release/client/"
 
         cp -r ${{ steps.strings.outputs.build-output-dir }}/async/include ${{ steps.strings.outputs.build-output-dir }}/release/library/
         cp -r ${{ steps.strings.outputs.build-output-dir }}/async/lib ${{ steps.strings.outputs.build-output-dir }}/release/library/

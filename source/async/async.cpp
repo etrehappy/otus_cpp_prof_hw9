@@ -14,8 +14,8 @@ namespace async
     {
         if (!async::kController)
         {
-            Controller& сontroller = Controller::Instance();
-            kController = &сontroller;
+            Controller& controller = Controller::Instance();
+            kController = &controller;
         }
         
         
