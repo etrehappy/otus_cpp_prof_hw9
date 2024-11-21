@@ -34,7 +34,7 @@ install(TARGETS async
     ARCHIVE DESTINATION ${CMAKE_BINARY_DIR}/async/lib           # .lib, .a 
 )
 
-install(FILES async.h parser.h cmd_reader.h m_exceptions.h
+install(FILES async.h
     DESTINATION ${CMAKE_BINARY_DIR}/async/include
 )
 

@@ -109,7 +109,7 @@ jobs:
         mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release_out/client
         mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release_out/library
         cp -r ${{ steps.strings.outputs.build-output-dir }}/async_cli ${{ steps.strings.outputs.build-output-dir }}/release_out/client/
-        find "${{ steps.strings.outputs.build-output-dir }}" -name 'lib*' -exec cp -r {} "${{ steps.strings.outputs.build-output-dir }}/release_out/client/" \;
+        find "${{ steps.strings.outputs.build-output-dir }}" -name 'lib*' -exec cp {} "${{ steps.strings.outputs.build-output-dir }}/release_out/client/" \;
 
         cp -r ${{ steps.strings.outputs.build-output-dir }}/async/include ${{ steps.strings.outputs.build-output-dir }}/release_out/library/
         cp -r ${{ steps.strings.outputs.build-output-dir }}/async/lib ${{ steps.strings.outputs.build-output-dir }}/release_out/library/
