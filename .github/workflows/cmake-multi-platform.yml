@@ -77,7 +77,7 @@ jobs:
       shell: pwsh
       run: |
         $buildOutputDir = "${{ steps.strings.outputs.build-output-dir }}"
-        $releaseDir = Join-Path -Path $buildOutputDir -ChildPath 'release_win'
+        $releaseDir = Join-Path -Path $buildOutputDir -ChildPath 'release_out'
         $clientDir = Join-Path -Path $releaseDir -ChildPath 'client'
         $libraryDir = Join-Path -Path $releaseDir -ChildPath 'library'
         
@@ -97,28 +97,27 @@ jobs:
       shell: pwsh
       run: |
         $buildOutputDir = "${{ steps.strings.outputs.build-output-dir }}"
-        $releaseDir = Join-Path -Path $buildOutputDir -ChildPath 'release'
+        $releaseDir = Join-Path -Path $buildOutputDir -ChildPath 'release_out'
         $archivePath = Join-Path -Path $buildOutputDir -ChildPath 'async.zip'
         
-        Compress-Archive -Path $clientDir, $libraryDir -DestinationPath $archivePath -Force
+        Compress-Archive -Path $releaseDir\client, $releaseDir\library -DestinationPath $archivePath -Force
 
        
     - name: Prepare directories for archiving (Ubuntu & macOS)
       if: matrix.os != 'windows-latest'
       run: |
-        mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release/client
-        mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release/library
-        cp -r ${{ steps.strings.outputs.build-output-dir }}/async_cli ${{ steps.strings.outputs.build-output-dir }}/release/client/
-        find "${{ steps.strings.outputs.build-output-dir }}" -name 'lib*' -exec cp {} "${{ steps.strings.outputs.build-output-dir }}/release/client/" \;
+        mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release_out/client
+        mkdir -p ${{ steps.strings.outputs.build-output-dir }}/release_out/library
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async_cli ${{ steps.strings.outputs.build-output-dir }}/release_out/client/
+        find "${{ steps.strings.outputs.build-output-dir }}" -name 'lib*' -exec cp -r {} "${{ steps.strings.outputs.build-output-dir }}/release_out/client/" \;
 
-        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/include ${{ steps.strings.outputs.build-output-dir }}/release/library/
-        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/lib ${{ steps.strings.outputs.build-output-dir }}/release/library/
-        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/bin ${{ steps.strings.outputs.build-output-dir }}/release/library/
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/include ${{ steps.strings.outputs.build-output-dir }}/release_out/library/
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/async/lib ${{ steps.strings.outputs.build-output-dir }}/release_out/library/
         
     - name: Archive client files (Ubuntu & macOS)
       if: matrix.os != 'windows-latest'
       run: |
-        cd ${{ steps.strings.outputs.build-output-dir }}/release
+        cd ${{ steps.strings.outputs.build-output-dir }}/release_out
         tar -czf async.tar.gz client library
 
 
@@ -130,7 +129,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.build-output-dir }}/release/async.tar.gz
+        asset_path: ${{ steps.strings.outputs.build-output-dir }}/release_out/async.tar.gz
         asset_name: async-${{ matrix.os }}-0.0.${{ github.run_number }}.tar.gz
         asset_content_type: application/gzip
 
